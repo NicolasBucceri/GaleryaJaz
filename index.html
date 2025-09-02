@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>¡Feliz cumple, Jaz! — Galería Aesthetic</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="site-header">
+    <h1>¡Feliz cumple, Jaz! 🎉</h1>
+    <p class="subtitle">Nuestra galería de recuerdos — <em>escarachos a lo loco</em></p>
+
+    <div class="actions">
+      <!-- ⚠️ Cambiá el href a la ruta real del PDF -->
+      <a class="btn btn-download" href="assets/pdf/libro-jaz.pdf" download aria-label="Descargar el libro en PDF">
+        <!-- icono “llave” -->
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M7 14a5 5 0 1 1 4.58-7H22v4h-2v2h-2v2h-2l-2.2-2.2A5 5 0 0 1 7 14zm0-2a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/>
+        </svg>
+        Descargar libro (PDF)
+      </a>
+    </div>
+  </header>
+
+  <main>
+    <section id="gallery" class="gallery" aria-label="Galería"></section>
+  </main>
+
+  <!-- Lightbox -->
+  <div class="lightbox" aria-hidden="true" role="dialog" aria-label="Visor de imagen/video">
+    <button class="lb-btn lb-close" aria-label="Cerrar (Esc)">&times;</button>
+    <button class="lb-btn lb-prev" aria-label="Anterior (←)">&larr;</button>
+    <div class="lb-media"></div>
+    <button class="lb-btn lb-next" aria-label="Siguiente (→)">&rarr;</button>
+  </div>
+
+  <footer class="site-footer">
+    <small>© 2025 — curated by Nico</small>
+  </footer>
+
+  <script src="script.js" defer></script>
+</body>
+</html>
