@@ -11,9 +11,38 @@
   let idx = 0;
 
   async function loadData() {
-    const res = await fetch('gallery.json'); // usar servidor local
+    const res = await fetch('gallery.json', { cache: 'no-store' });
     const data = await res.json();
     items = data.items || [];
+  }
+
+  // Precarga garantizando dimensiones antes del render
+  async function preloadAll() {
+    const preloaders = items.map((it) => {
+      if (it.type === 'video') {
+        return new Promise((resolve) => {
+          const v = document.createElement('video');
+          v.src = it.src;
+          v.preload = 'metadata';
+          v.addEventListener('loadedmetadata', () => resolve(), { once: true });
+          v.addEventListener('error', () => resolve(), { once: true }); // no bloqueamos
+        });
+      } else {
+        return new Promise((resolve) => {
+          const img = new Image();
+          if (it.width)  img.width  = it.width;
+          if (it.height) img.height = it.height;
+          img.src = it.src;
+          img.addEventListener('load', async () => {
+            // decode asegura que el bitmap esté listo y no “parpadee”
+            try { await img.decode(); } catch (_) {}
+            resolve();
+          }, { once: true });
+          img.addEventListener('error', () => resolve(), { once: true });
+        });
+      }
+    });
+    await Promise.all(preloaders);
   }
 
   function render() {
@@ -27,17 +56,13 @@
         const v = document.createElement('video');
         v.src = it.src;
         v.playsInline = true;
-        v.muted = true;            // evita autoplay bloqueado en hover/click
+        v.muted = true;
+        v.loop = true;
         v.preload = 'metadata';
-        v.loop = true;             // preview en loop
-        v.addEventListener('canplay', () => {
-          // reproducimos en silencio como preview (si falla, no importa)
-          v.play().catch(() => {});
-        });
+        v.addEventListener('canplay', () => v.play().catch(() => {}));
         v.addEventListener('click', () => open(i));
         fig.appendChild(v);
 
-        // Overlay simple de "play"
         const overlay = document.createElement('div');
         overlay.className = 'play-badge';
         overlay.setAttribute('aria-hidden', 'true');
@@ -47,7 +72,10 @@
         const img = document.createElement('img');
         img.src = it.src;
         img.alt = it.alt || `Imagen ${i+1}`;
-        img.loading = 'lazy';
+        // No usamos lazy en el primer render para evitar que no entren en viewport
+        if (it.width)  img.width  = it.width;   // si tu JSON los trae, mejor
+        if (it.height) img.height = it.height;
+        img.decoding = 'async';
         img.addEventListener('click', () => open(i));
         fig.appendChild(img);
       }
@@ -68,23 +96,15 @@
       const v = document.createElement('video');
       v.src = it.src;
       v.controls = true;
-      v.autoplay = true;    // intentamos autoplay
+      v.autoplay = true;
       v.playsInline = true;
       v.style.maxWidth = '100%';
-
       lbMedia.appendChild(v);
 
-      // Intento de reproducción con fallback a mute si el navegador bloquea
       const tryPlay = async () => {
-        try {
-          await v.play();
-        } catch (e) {
-          // si falla por política de autoplay, muteamos y reintentamos
-          v.muted = true;
-          try { await v.play(); } catch (_) {}
-        }
+        try { await v.play(); }
+        catch { v.muted = true; try { await v.play(); } catch(_){} }
       };
-      // algunos navegadores requieren esperar a que esté listo
       if (v.readyState >= 2) tryPlay();
       else v.addEventListener('canplay', tryPlay, { once: true });
 
@@ -103,14 +123,13 @@
   function close(){
     lb.classList.remove('is-open');
     lb.setAttribute('aria-hidden','true');
-    // pausar y limpiar para liberar memoria
     const media = lbMedia.querySelector('video');
-    if (media) { media.pause(); }
+    if (media) media.pause();
     lbMedia.innerHTML = '';
   }
 
-  function prev(){ open((idx - 1 + items.length) % items.length); }
-  function next(){ open((idx + 1) % items.length); }
+  const prev = () => open((idx - 1 + items.length) % items.length);
+  const next = () => open((idx + 1) % items.length);
 
   btnClose.addEventListener('click', close);
   btnPrev .addEventListener('click', prev);
@@ -125,6 +144,7 @@
 
   try{
     await loadData();
+    await preloadAll();  // 👈 clave para que aparezca TODO de una
     render();
   }catch(err){
     console.error('Error cargando gallery.json', err);
